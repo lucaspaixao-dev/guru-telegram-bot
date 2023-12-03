@@ -1,4 +1,7 @@
+import datetime
 import logging
+
+import telegram
 from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler
 
@@ -9,6 +12,8 @@ from domain.usecases.neural_network import NeuralNetworkUseCase, NeuralNetworkIn
 from domain.usecases.random_forest import RandomForestUseCase, RandomForestInput
 from infra.repositories.league import LeagueRepository
 from infra.repositories.model import ModelRepository
+
+from infra.clients.footystats.footystats import FootystatsClient
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -69,6 +74,52 @@ async def analyse(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(chat_id=update.effective_chat.id, text="Análise concluida ✅")
 
 
+footstats_client = FootystatsClient()
+
+
+async def predictions(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await context.bot.send_message(chat_id=update.effective_chat.id,
+                                   text="Realizando predições para os jogos de hoje 🧙‍")
+
+    today_matches = footstats_client.get_today_matches()
+    matches = []
+
+    for match in today_matches:
+        home_team_info = footstats_client.get_team_info(team_id=match.get('homeID'))[0]
+        away_team_info = footstats_client.get_team_info(team_id=match.get('awayID'))[0]
+
+        game_date = datetime.datetime.fromtimestamp(match.get('date_unix'))
+        game_time_formatted = game_date.strftime("%H:%M")
+
+        info_match = {
+            "round": match.get('game_week'),
+            "home_team": str(home_team_info.get('name')).upper(),
+            "away_team": str(away_team_info.get('name')).upper(),
+            "time": game_time_formatted,
+            "stadium_name": match.get('stadium_name'),
+            "odds_ft_1": match.get('odds_ft_1'),
+            "odds_ft_x": match.get('odds_ft_x'),
+            "odds_ft_2": match.get('odds_ft_2'),
+        }
+
+        matches.append(info_match)
+
+    text = ""
+    for m in matches:
+        match_text = (f"⚽️ <b>{m.get('home_team')} x {m.get('away_team')}</b>\n "
+                      f"🏟️ Local: <b>{m.get('stadium_name')}</b>\n "
+                      f"⏰ Horário: <b>{m.get('time')}</b>\n "
+                      f"📈 Odds: Casa: <b>{m.get('odds_ft_1')}</b>, "
+                      f"Empate: <b>{m.get('odds_ft_x')}</b>, "
+                      f"Visitante: <b>{m.get('odds_ft_2')}</b>\n\n")
+
+        text += match_text
+
+    await context.bot.send_message(chat_id=update.effective_chat.id,
+                                   text=text,
+                                   parse_mode=telegram.constants.ParseMode.HTML)
+
+
 if __name__ == '__main__':
     application = ApplicationBuilder().token('6505692966:AAEIjOTJw8No1BuNwYaIYEiQwCfjMBXPpig').build()
 
@@ -77,5 +128,8 @@ if __name__ == '__main__':
 
     analyse_handler = CommandHandler('analyse', analyse)
     application.add_handler(analyse_handler)
+
+    predictions_handler = CommandHandler('predictions', predictions)
+    application.add_handler(predictions_handler)
 
     application.run_polling()
