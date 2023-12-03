@@ -1,0 +1,7 @@
+storage/checkpoints/*
+storage/leagues/saved/*
+
+available_leagues.csv
+
+.idea/
+__pycache__/

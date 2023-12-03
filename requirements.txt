@@ -1,0 +1,12 @@
+python-telegram-bot
+numpy
+pandas
+scikit-learn
+matplotlib
+tensorflow
+tensorflow_addons
+optuna
+seaborn
+xgboost
+requests
+fuzzywuzzy
