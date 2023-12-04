@@ -17,5 +17,6 @@ teams = {
     "Bragantino": "Bragantino",
     "Goiás": "Goias",
     "Cuiabá": "Cuiaba",
-    "Fortaleza": "Fortaleza"
+    "Fortaleza": "Fortaleza",
+    "Flamengo": "Flamengo RJ"
 }
