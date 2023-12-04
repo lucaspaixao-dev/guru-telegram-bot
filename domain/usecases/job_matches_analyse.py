@@ -14,7 +14,7 @@ class JobMatchesAnalyseUseCase:
         self.__load_league_use_case = LoadLeagueUseCase(league_repository=league_repository)
 
     def execute(self):
-        predicts = []
+        predicts = dict()
         # leagues_to_analyze = [("Brasileirão", "Brazil Serie A"), ("Premiere League", "England Premier League")]
         leagues_to_analyze = [("Brasileirão", "Brazil Serie A")]
 
@@ -23,7 +23,7 @@ class JobMatchesAnalyseUseCase:
             league_predicts = self.__get_predicts(league_name, external_league_name, matches)
 
             if league_predicts:
-                predicts.append(league_predicts)
+                predicts[league_name] = league_predicts
 
         return predicts
 

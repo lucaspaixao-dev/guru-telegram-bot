@@ -127,7 +127,35 @@ async def test(update: Update, context: ContextTypes.DEFAULT_TYPE):
     job = JobMatchesAnalyseUseCase(model_repository=model_repository, league_repository=league_repository)
     result = job.execute()
 
-    await context.bot.send_message(chat_id=update.effective_chat.id, text="Done!")
+    msg = "<b>Jogos do dia:</b>\n\n"
+
+    if "Brasileirão" in result:
+        brazil_predictions = result.get("Brasileirão")
+
+        brazil_msg = "Brasileirão 🇧🇷:\n"
+
+        for p in brazil_predictions:
+            if p.get('predict') == 'H':
+                prediction = p.get("home_team")
+            elif p.get('predict') == 'A':
+                prediction = p.get("away_team")
+            else:
+                prediction = 'EMPATE'
+
+            t = (f'⚽️ Rodada: {p.get("round")}\n'
+                 f'⚽️ Partida: {p.get("home_team")} X {p.get("away_team")}\n'
+                 f'⏰ Horário: {p.get("time")}\n'
+                 f'🧙‍ Palpite: <b>{prediction}</b>\n'
+                 f'📈 Porcentagem do {p.get("home_team")} ganhar é de <b>{p.get("home_percentage")}%</b>\n'
+                 f'📈 Porcentagem do {p.get("away_team")} ganhar é de <b>{p.get("away_percentage")}%</b>\n'
+                 f'📈 Porcentagem de EMPATE é de <b>{p.get("draw_percentage")}%</b>\n\n')
+
+            brazil_msg += t
+        msg += brazil_msg
+
+    await context.bot.send_message(chat_id=update.effective_chat.id, text=msg,
+                                   parse_mode=telegram.constants.ParseMode.HTML)
+
 
 if __name__ == '__main__':
     application = ApplicationBuilder().token('6505692966:AAEIjOTJw8No1BuNwYaIYEiQwCfjMBXPpig').build()
