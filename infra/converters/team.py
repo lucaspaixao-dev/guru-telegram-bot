@@ -1,0 +1,21 @@
+teams = {
+    "Palmeiras": "Palmeiras",
+    "Santos": "Santos",
+    "Cruzeiro": "Cruzeiro",
+    "Botafogo": "Botafogo RJ",
+    "Grêmio": "Gremio",
+    "Fluminense": "Fluminense",
+    "São Paulo": "Sao Paulo",
+    "Atlético Mineiro": "Atletico-MG",
+    "Atlético PR": "Atletico-PR",
+    "Corinthians": "Corinthians",
+    "Vasco da Gama": "Vasco",
+    "Bahia": "Bahia",
+    "Coritiba": "Coritiba",
+    "Internacional": "Internacional",
+    "América Mineiro": "America MG",
+    "Bragantino": "Bragantino",
+    "Goiás": "Goias",
+    "Cuiabá": "Cuiaba",
+    "Fortaleza": "Fortaleza"
+}

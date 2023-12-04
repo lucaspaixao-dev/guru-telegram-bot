@@ -12,6 +12,7 @@ from domain.usecases.neural_network import NeuralNetworkUseCase, NeuralNetworkIn
 from domain.usecases.random_forest import RandomForestUseCase, RandomForestInput
 from infra.repositories.league import LeagueRepository
 from infra.repositories.model import ModelRepository
+from domain.usecases.job_matches_analyse import JobMatchesAnalyseUseCase
 
 from infra.clients.footystats.footystats import FootystatsClient
 
@@ -120,6 +121,14 @@ async def predictions(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                    parse_mode=telegram.constants.ParseMode.HTML)
 
 
+async def test(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await context.bot.send_message(chat_id=update.effective_chat.id, text="Aguarde")
+
+    job = JobMatchesAnalyseUseCase(model_repository=model_repository, league_repository=league_repository)
+    result = job.execute()
+
+    await context.bot.send_message(chat_id=update.effective_chat.id, text="Done!")
+
 if __name__ == '__main__':
     application = ApplicationBuilder().token('6505692966:AAEIjOTJw8No1BuNwYaIYEiQwCfjMBXPpig').build()
 
@@ -131,5 +140,8 @@ if __name__ == '__main__':
 
     predictions_handler = CommandHandler('predictions', predictions)
     application.add_handler(predictions_handler)
+
+    test_handler = CommandHandler('test', test)
+    application.add_handler(test_handler)
 
     application.run_polling()

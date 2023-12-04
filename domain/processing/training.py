@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 import tensorflow.keras.utils as utils
-
+from infra.converters.team import teams
 
 def preprocess_training_dataframe(matches_df: pd.DataFrame, one_hot: bool) -> (np.ndarray, np.ndarray):
     inputs = matches_df.dropna().drop(columns=['Season', 'Date', 'Result', 'Home Team', 'Away Team', 'HG', 'AG'])
@@ -22,10 +22,14 @@ def construct_input_from_team_names(
         odd_x: float,
         odd_2: float
 ) -> np.ndarray:
-    home_team_row = matches_df[matches_df['Home Team'] == home_team].head(1).drop(
+    formatted_home_team = teams.get(home_team)
+
+    home_team_row = matches_df[matches_df['Home Team'] == formatted_home_team].head(1).drop(
         columns=['Season', 'Date', 'Result', 'Home Team', 'Away Team', 'HG', 'AG']
     )
-    away_team_row = matches_df[matches_df['Away Team'] == away_team].head(1).drop(
+
+    formatted_away_team = teams.get(away_team)
+    away_team_row = matches_df[matches_df['Away Team'] == formatted_away_team].head(1).drop(
         columns=['Season', 'Date', 'Result', 'Home Team', 'Away Team', 'HG', 'AG']
     )
     return np.hstack((

@@ -1,8 +1,8 @@
 import os
 import shutil
 from domain.models.model import Model
+from domain.models.scikit.rf import RandomForest
 from domain.models.tf.nn import FCNet
-# from models.scikit.rf import RandomForest
 
 
 class ModelRepository:
@@ -39,8 +39,8 @@ class ModelRepository:
         if os.path.exists(checkpoint_filepath):
             if model_name == 'nn':
                 model = FCNet(input_shape=input_shape, random_seed=random_seed)
-            # elif model_name == 'rf.pickle':
-            #     model = RandomForest(input_shape=input_shape, random_seed=random_seed)
+            elif model_name == 'rf.pickle':
+                model = RandomForest(input_shape=input_shape, random_seed=random_seed)
             else:
                 raise NotImplementedError(f'Type of model "{model_name}" has not been implemented yet')
         else:
