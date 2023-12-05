@@ -89,10 +89,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     remove_job_if_exists(str(chat_id), context)
 
     t = time(hour=7, minute=30, second=0)
-    # context.job_queue.run_daily(get_predictions, t, days=tuple(range(6)), context=update, name=str(chat_id),
-    #                             chat_id=chat_id)
-
-    context.job_queue.run_repeating(get_predictions, interval=60, name=str(chat_id), chat_id=chat_id)
+    context.job_queue.run_daily(get_predictions, t, days=tuple(range(6)), context=update, name=str(chat_id),
+                                chat_id=chat_id)
 
     msg = "<b>Bem vindo ao bot de palpites de apostas esportivas!</b>\n\n"
     msg += ("<b>Todos os dias você irá receber palpites dos jogos da lista de ligas abaixo."

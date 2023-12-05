@@ -19,7 +19,7 @@ def execute():
 
 
 if __name__ == '__main__':
-    schedule.every().day().at("02:00").do(execute)
+    schedule.every().day.at("02:00").do(execute)
     while True:
         schedule.run_pending()
         time.sleep(1)
