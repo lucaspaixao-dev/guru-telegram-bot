@@ -1,12 +1,14 @@
+import json
 import logging
+from datetime import time
 
+import pandas as pd
 import telegram
 from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes
 from telegram.ext import CommandHandler
 
 import variables
-from domain.usecases.job_matches_analyse import JobMatchesAnalyseUseCase
 from infra.repositories.league import LeagueRepository
 from infra.repositories.model import ModelRepository
 
@@ -21,182 +23,95 @@ league_repository = LeagueRepository(available_leagues_filepath=variables.availa
 model_repository = ModelRepository(models_checkpoint_directory=variables.models_checkpoint_directory)
 
 
-# create_league_use_case = CreateLeagueUseCase(league_repository=league_repository)
-#
-#
-# async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-#     await context.bot.send_message(chat_id=update.effective_chat.id, text="Criando liga")
-#     input = CreateLeagueInput(
-#         country='Brazil',
-#         official_league_name='Serie-A',
-#         custom_league_name='Brasileirão',
-#         last_n_matches=3,
-#         goal_diff_margin=2
-#     )
-#
-#     create_league_use_case.execute(input=input)
-#
-#     await context.bot.send_message(chat_id=update.effective_chat.id, text="Liga criada!")
-#
-#
-# load_league_use_case = LoadLeagueUseCase(league_repository=league_repository)
-# neural_network_use_case = NeuralNetworkUseCase(model_repository=model_repository)
-# random_forest_use_case = RandomForestUseCase(model_repository=model_repository)
-#
-#
-# async def analyse(update: Update, context: ContextTypes.DEFAULT_TYPE):
-#     league_name = 'Brasileirão'
-#
-#     await context.bot.send_message(chat_id=update.effective_chat.id, text="Realizando análise, aguarde ⏳")
-#     load_input = LoadLeagueInput(
-#         league_name=league_name
-#     )
-#     matches_df = load_league_use_case.execute(input=load_input)
-#
-#     await context.bot.send_message(chat_id=update.effective_chat.id, text="Neural Network 👀")
-#     nn_input = NeuralNetworkInput(
-#         league_name=league_name,
-#         matches_df=matches_df
-#     )
-#     neural_network_use_case.execute(input=nn_input)
-#
-#     await context.bot.send_message(chat_id=update.effective_chat.id, text="Random Forest 👀")
-#     rf_input = RandomForestInput(
-#         league_name=league_name,
-#         matches_df=matches_df
-#     )
-#     random_forest_use_case.execute(input=rf_input)
-#
-#     await context.bot.send_message(chat_id=update.effective_chat.id, text="Análise concluida ✅")
-#
-#
-# footstats_client = FootystatsClient()
-#
-#
-# async def predictions(update: Update, context: ContextTypes.DEFAULT_TYPE):
-#     await context.bot.send_message(chat_id=update.effective_chat.id,
-#                                    text="Realizando predições para os jogos de hoje 🧙‍")
-#
-#     today_matches = footstats_client.get_today_matches()
-#     matches = []
-#
-#     for match in today_matches:
-#         home_team_info = footstats_client.get_team_info(team_id=match.get('homeID'))[0]
-#         away_team_info = footstats_client.get_team_info(team_id=match.get('awayID'))[0]
-#
-#         game_date = datetime.datetime.fromtimestamp(match.get('date_unix'))
-#         game_time_formatted = game_date.strftime("%H:%M")
-#
-#         info_match = {
-#             "round": match.get('game_week'),
-#             "home_team": str(home_team_info.get('name')).upper(),
-#             "away_team": str(away_team_info.get('name')).upper(),
-#             "time": game_time_formatted,
-#             "stadium_name": match.get('stadium_name'),
-#             "odds_ft_1": match.get('odds_ft_1'),
-#             "odds_ft_x": match.get('odds_ft_x'),
-#             "odds_ft_2": match.get('odds_ft_2'),
-#         }
-#
-#         matches.append(info_match)
-#
-#     text = ""
-#     for m in matches:
-#         match_text = (f"⚽️ <b>{m.get('home_team')} x {m.get('away_team')}</b>\n "
-#                       f"🏟️ Local: <b>{m.get('stadium_name')}</b>\n "
-#                       f"⏰ Horário: <b>{m.get('time')}</b>\n "
-#                       f"📈 Odds: Casa: <b>{m.get('odds_ft_1')}</b>, "
-#                       f"Empate: <b>{m.get('odds_ft_x')}</b>, "
-#                       f"Visitante: <b>{m.get('odds_ft_2')}</b>\n\n")
-#
-#         text += match_text
-#
-#     await context.bot.send_message(chat_id=update.effective_chat.id,
-#                                    text=text,
-#                                    parse_mode=telegram.constants.ParseMode.HTML)
-#
-#
+async def get_predictions(context: ContextTypes.DEFAULT_TYPE):
+    matches_df = pd.read_csv(f'storage/predicts/predicts.csv')
+    matches_df = matches_df.reset_index()
 
+    dict_predictions = {}
 
-async def test(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await context.bot.send_message(chat_id=update.effective_chat.id, text="Aguarde")
+    for index, row in matches_df.iterrows():
+        league = row[1]
 
-    job = JobMatchesAnalyseUseCase(model_repository=model_repository, league_repository=league_repository)
-    result = job.execute()
+        json_acceptable_string = row[2].replace("'", "\"")
+        predictions = json.loads(json_acceptable_string)
 
-    msg = "<b>Jogos do dia:</b>\n\n"
+        dict_predictions[league] = predictions
 
-    if "Brasileirão" in result:
-        brazil_predictions = result.get("Brasileirão")
+    if dict_predictions:
+        msg = "<b>Jogos do dia:</b>\n\n"
 
-        brazil_msg = "Brasileirão 🇧🇷:\n"
-
-        for p in brazil_predictions:
-            if p.get('predict') == 'H':
-                prediction = p.get("home_team")
-            elif p.get('predict') == 'A':
-                prediction = p.get("away_team")
+        for index, value in dict_predictions.items():
+            if index == "Brasileirão":
+                flag = "🇧🇷"
             else:
-                prediction = 'EMPATE'
+                flag = "🏴󠁧󠁢󠁥󠁮󠁧󠁿"
 
-            t = (f'⚽️ Rodada: {p.get("round")}\n'
-                 f'⚽️ Partida: {p.get("home_team")} X {p.get("away_team")}\n'
-                 f'⏰ Horário: {p.get("time")}\n'
-                 f'🧙‍ Palpite: <b>{prediction}</b>\n'
-                 f'📈 Porcentagem do {p.get("home_team")} ganhar é de <b>{p.get("home_percentage")}%</b>\n'
-                 f'📈 Porcentagem do {p.get("away_team")} ganhar é de <b>{p.get("away_percentage")}%</b>\n'
-                 f'📈 Porcentagem de EMPATE é de <b>{p.get("draw_percentage")}%</b>\n\n')
+            msg_header = f"{flag} <b>{index}:</b> \n"
 
-            brazil_msg += t
-        msg += brazil_msg
+            for p in value:
+                if p.get('predict') == 'H':
+                    prediction = p.get("home_team")
+                elif p.get('predict') == 'A':
+                    prediction = p.get("away_team")
+                else:
+                    prediction = 'EMPATE'
+
+                t = (f'⚽️ Rodada: {p.get("round")}\n'
+                     f'⚽️ Partida: {p.get("home_team")} X {p.get("away_team")}\n'
+                     f'⏰ Horário: {p.get("time")}\n'
+                     f'🧙‍ Palpite: <b>{prediction}</b>\n'
+                     f'📈 Porcentagem do {p.get("home_team")} ganhar é de <b>{p.get("home_percentage")}%</b>\n'
+                     f'📈 Porcentagem do {p.get("away_team")} ganhar é de <b>{p.get("away_percentage")}%</b>\n'
+                     f'📈 Porcentagem de EMPATE é de <b>{p.get("draw_percentage")}%</b>\n\n')
+
+                msg_header += t
+
+            msg += msg_header
+
+        chat_id = context.job.chat_id
+        await context.bot.send_message(chat_id=chat_id, text=msg, parse_mode=telegram.constants.ParseMode.HTML)
+
+
+def remove_job_if_exists(name: str, context: ContextTypes.DEFAULT_TYPE) -> bool:
+    """Remove job with given name. Returns whether job was removed."""
+    if context.job_queue:
+        current_jobs = context.job_queue.get_jobs_by_name(name)
+        if not current_jobs:
+            return False
+        for job in current_jobs:
+            job.schedule_removal()
+        return True
+    return False
+
+
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    chat_id = update.effective_message.chat_id
+    remove_job_if_exists(str(chat_id), context)
+
+    t = time(hour=7, minute=30, second=0)
+    # context.job_queue.run_daily(get_predictions, t, days=tuple(range(6)), context=update, name=str(chat_id),
+    #                             chat_id=chat_id)
+
+    context.job_queue.run_repeating(get_predictions, interval=60, name=str(chat_id), chat_id=chat_id)
+
+    msg = "<b>Bem vindo ao bot de palpites de apostas esportivas!</b>\n\n"
+    msg += ("<b>Todos os dias você irá receber palpites dos jogos da lista de ligas abaixo."
+            "Todas os palpites foram utilizandos algoritmos de machine learn 🖥️</b>\n\n")
+
+    msg += "<b>Ligas disponíveis:</b>\n"
+    msg += "- 🇧🇷 <b>Brasileirão</b>\n"
+    msg += "- 🏴󠁧󠁢󠁥󠁮󠁧󠁿 <b>Premiere League</b>\n\n"
+
+    msg += "<b>Espero que você faça muitos greens!</b> 🤑🟢✅"
 
     await context.bot.send_message(chat_id=update.effective_chat.id, text=msg,
                                    parse_mode=telegram.constants.ParseMode.HTML)
 
 
-# def remove_job_if_exists(name: str, context: ContextTypes.DEFAULT_TYPE) -> bool:
-#     current_jobs = context.job_queue.get_jobs_by_name(name)
-#     if not current_jobs:
-#         return False
-#     for job in current_jobs:
-#         job.schedule_removal()
-#     return True
-#
-#
-# async def train_job(context: ContextTypes.DEFAULT_TYPE) -> None:
-#     use_case = JobTrainUseCase(league_repository=league_repository, model_repository=model_repository)
-#     use_case.execute()
-#
-#
-# async def set_train_job(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-#     t = datetime.time(2, 00, 00, 000000)
-#     context.job_queue.run_daily(train_job, t, days=tuple(range(6)), context=update)
-#
-#
-# async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-#     chat_id = update.effective_message.chat_id
-#     remove_job_if_exists(str(chat_id), context)
-#
-#     t = datetime.time(2, 00, 00, 000000)
-#     context.job_queue.run_daily(train_job, t, days=tuple(range(6)), context=update, name=str(chat_id))
-
-
 if __name__ == '__main__':
     application = ApplicationBuilder().token('6505692966:AAEIjOTJw8No1BuNwYaIYEiQwCfjMBXPpig').build()
 
-    # start_handler = CommandHandler('start', start)
-    # application.add_handler(start_handler)
-    #
-    # analyse_handler = CommandHandler('analyse', analyse)
-    # application.add_handler(analyse_handler)
-    #
-    # predictions_handler = CommandHandler('predictions', predictions)
-    # application.add_handler(predictions_handler)
-    #
-    test_handler = CommandHandler('test', test)
-    application.add_handler(test_handler)
-
-    # start_handler = CommandHandler('start', start)
-    # application.add_handler(start_handler)
+    start_handler = CommandHandler('start', start)
+    application.add_handler(start_handler)
 
     application.run_polling(allowed_updates=Update.ALL_TYPES)
