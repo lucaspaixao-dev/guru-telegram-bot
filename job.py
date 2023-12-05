@@ -14,8 +14,10 @@ if __name__ == '__main__':
     model_repository = ModelRepository(models_checkpoint_directory=variables.models_checkpoint_directory)
 
     train_use_case = JobTrainUseCase(league_repository=league_repository, model_repository=model_repository)
-    schedule.every().day().at("02:00").do(train_use_case.execute())
+    train_use_case.execute()
+    print("done")
+    # schedule.every().day().at("02:00").do(train_use_case.execute())
 
-    while True:
-        schedule.run_pending()
-        time.sleep(1)
+    # while True:
+    #     schedule.run_pending()
+    #     time.sleep(1)

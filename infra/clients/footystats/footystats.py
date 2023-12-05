@@ -8,9 +8,8 @@ class FootystatsClient(object):
     def get_today_matches(self):
         try:
             utc = '-03'
-            date = '2023-12-06'
             return requests.get(
-                url=f"https://api.football-data-api.com/todays-matches?key={self.__api_key}&timezone={utc}&date={date}"
+                url=f"https://api.football-data-api.com/todays-matches?key={self.__api_key}&timezone={utc}"
             ).json().get('data')
         except Exception as e:
             print(e)
