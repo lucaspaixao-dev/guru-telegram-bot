@@ -1,9 +1,12 @@
 from datetime import datetime
-from infra.clients.footystats.footystats import FootystatsClient
-from infra.repositories.model import ModelRepository
-from domain.usecases.matches_analyse import MatchesAnalyseUseCase, MatchesAnalyseInput
-from infra.repositories.league import LeagueRepository
+
+import pandas as pd
+
 from domain.usecases.load_league import LoadLeagueUseCase, LoadLeagueInput
+from domain.usecases.matches_analyse import MatchesAnalyseUseCase, MatchesAnalyseInput
+from infra.clients.footystats.footystats import FootystatsClient
+from infra.repositories.league import LeagueRepository
+from infra.repositories.model import ModelRepository
 
 
 class JobMatchesAnalyseUseCase:
@@ -15,8 +18,10 @@ class JobMatchesAnalyseUseCase:
 
     def execute(self):
         predicts = dict()
-        # leagues_to_analyze = [("Brasileirão", "Brazil Serie A"), ("Premiere League", "England Premier League")]
-        leagues_to_analyze = [("Brasileirão", "Brazil Serie A")]
+        leagues_to_analyze = [
+            ("Brasileirão", "Brazil Serie A"),
+            ("Premier-League", "England Premier League")
+        ]
 
         for league_name, external_league_name in leagues_to_analyze:
             matches = self.__client.get_today_matches()
@@ -24,6 +29,8 @@ class JobMatchesAnalyseUseCase:
 
             if league_predicts:
                 predicts[league_name] = league_predicts
+
+        self.__save_predicts(predicts=predicts)
 
         return predicts
 
@@ -104,3 +111,10 @@ class JobMatchesAnalyseUseCase:
                 return seasons[-1].get('id')
 
         return 0
+
+    def __save_predicts(self, predicts: dict):
+        new_predicts = pd.DataFrame(predicts.items())
+
+        path = 'storage/predicts/predicts.csv'
+
+        new_predicts.to_csv(path, index=False)
