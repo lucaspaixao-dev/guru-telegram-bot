@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 from datetime import time
 
 import pandas as pd
@@ -24,52 +25,55 @@ model_repository = ModelRepository(models_checkpoint_directory=variables.models_
 
 
 async def get_predictions(context: ContextTypes.DEFAULT_TYPE):
-    matches_df = pd.read_csv(f'storage/predicts/predicts.csv')
-    matches_df = matches_df.reset_index()
+    path = 'storage/predicts/predicts.csv'
 
-    dict_predictions = {}
+    if (os.path.exists(path) and os.path.isfile(path)):
+        matches_df = pd.read_csv(f'storage/predicts/predicts.csv')
+        matches_df = matches_df.reset_index()
 
-    for index, row in matches_df.iterrows():
-        league = row[1]
+        dict_predictions = {}
 
-        json_acceptable_string = row[2].replace("'", "\"")
-        predictions = json.loads(json_acceptable_string)
+        for index, row in matches_df.iterrows():
+            league = row[1]
 
-        dict_predictions[league] = predictions
+            json_acceptable_string = row[2].replace("'", "\"")
+            predictions = json.loads(json_acceptable_string)
 
-    if dict_predictions:
-        msg = "<b>Jogos do dia:</b>\n\n"
+            dict_predictions[league] = predictions
 
-        for index, value in dict_predictions.items():
-            if index == "Brasileirão":
-                flag = "🇧🇷"
-            else:
-                flag = "🏴󠁧󠁢󠁥󠁮󠁧󠁿"
+        if dict_predictions:
+            msg = "<b>Jogos do dia:</b>\n\n"
 
-            msg_header = f"{flag} <b>{index}:</b> \n"
-
-            for p in value:
-                if p.get('predict') == 'H':
-                    prediction = p.get("home_team")
-                elif p.get('predict') == 'A':
-                    prediction = p.get("away_team")
+            for index, value in dict_predictions.items():
+                if index == "Brasileirão":
+                    flag = "🇧🇷"
                 else:
-                    prediction = 'EMPATE'
+                    flag = "🏴󠁧󠁢󠁥󠁮󠁧󠁿"
 
-                t = (f'⚽️ Rodada: {p.get("round")}\n'
-                     f'⚽️ Partida: {p.get("home_team")} X {p.get("away_team")}\n'
-                     f'⏰ Horário: {p.get("time")}\n'
-                     f'🧙‍ Palpite: <b>{prediction}</b>\n'
-                     f'📈 Porcentagem do {p.get("home_team")} ganhar é de <b>{p.get("home_percentage")}%</b>\n'
-                     f'📈 Porcentagem do {p.get("away_team")} ganhar é de <b>{p.get("away_percentage")}%</b>\n'
-                     f'📈 Porcentagem de EMPATE é de <b>{p.get("draw_percentage")}%</b>\n\n')
+                msg_header = f"{flag} <b>{index}:</b> \n"
 
-                msg_header += t
+                for p in value:
+                    if p.get('predict') == 'H':
+                        prediction = p.get("home_team")
+                    elif p.get('predict') == 'A':
+                        prediction = p.get("away_team")
+                    else:
+                        prediction = 'EMPATE'
 
-            msg += msg_header
+                    t = (f'⚽️ Rodada: {p.get("round")}\n'
+                         f'⚽️ Partida: {p.get("home_team")} X {p.get("away_team")}\n'
+                         f'⏰ Horário: {p.get("time")}\n'
+                         f'🧙‍ Palpite: <b>{prediction}</b>\n'
+                         f'📈 Porcentagem do {p.get("home_team")} ganhar é de <b>{p.get("home_percentage")}%</b>\n'
+                         f'📈 Porcentagem do {p.get("away_team")} ganhar é de <b>{p.get("away_percentage")}%</b>\n'
+                         f'📈 Porcentagem de EMPATE é de <b>{p.get("draw_percentage")}%</b>\n\n')
 
-        chat_id = context.job.chat_id
-        await context.bot.send_message(chat_id=chat_id, text=msg, parse_mode=telegram.constants.ParseMode.HTML)
+                    msg_header += t
+
+                msg += msg_header
+
+            chat_id = context.job.chat_id
+            await context.bot.send_message(chat_id=chat_id, text=msg, parse_mode=telegram.constants.ParseMode.HTML)
 
 
 def remove_job_if_exists(name: str, context: ContextTypes.DEFAULT_TYPE) -> bool:
@@ -89,8 +93,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     remove_job_if_exists(str(chat_id), context)
 
     t = time(hour=7, minute=30, second=0)
-    context.job_queue.run_daily(get_predictions, t, days=tuple(range(6)), context=update, name=str(chat_id),
-                                chat_id=chat_id)
+    context.job_queue.run_daily(get_predictions, t, days=tuple(range(6)), name=str(chat_id), chat_id=chat_id)
 
     msg = "<b>Bem vindo ao bot de palpites de apostas esportivas!</b>\n\n"
     msg += ("<b>Todos os dias você irá receber palpites dos jogos da lista de ligas abaixo."

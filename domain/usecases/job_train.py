@@ -1,3 +1,5 @@
+import os
+
 from domain.usecases.create_league import CreateLeagueUseCase, CreateLeagueInput
 from domain.usecases.job_matches_analyse import JobMatchesAnalyseUseCase
 from domain.usecases.load_league import LoadLeagueUseCase, LoadLeagueInput
@@ -17,9 +19,15 @@ class JobTrainUseCase(object):
         self.__job_matches_analyse = JobMatchesAnalyseUseCase(league_repository=league_repository,
                                                               model_repository=model_repository)
 
-    def execute(self):
-        self.__process(country="Brazil", official_league_name='Serie-A', custom_league_name='Brasileirão')
-        self.__process(country="England", official_league_name='Premier-League', custom_league_name='Premier-League')
+    def execute(self, country: str):
+        self.__delete_predicts()
+
+        if country == "Brazil":
+            self.__process(country="Brazil", official_league_name='Serie-A', custom_league_name='Brasileirão')
+
+        if country == "England":
+            self.__process(country="England", official_league_name='Premier-League',
+                           custom_league_name='Premier-League')
 
         self.__job_matches_analyse.execute()
 
@@ -69,3 +77,8 @@ class JobTrainUseCase(object):
         rf_input = RandomForestInput(league_name=custom_league_name, matches_df=matches_df)
         self.__random_forest_use_case.execute(input=rf_input)
         print("RF completed")
+
+    def __delete_predicts(self):
+        files = os.listdir("storage/predicts")
+        for file in files:
+            os.remove(file)  # delete all files
