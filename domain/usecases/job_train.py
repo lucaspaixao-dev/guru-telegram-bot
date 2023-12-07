@@ -79,6 +79,7 @@ class JobTrainUseCase(object):
         print("RF completed")
 
     def __delete_predicts(self):
-        files = os.listdir("storage/predicts")
+        path = "storage/predicts"
+        files = os.listdir(path)
         for file in files:
-            os.remove(file)  # delete all files
+            os.remove(f"{path}/{file}")  # delete all files

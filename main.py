@@ -26,6 +26,7 @@ model_repository = ModelRepository(models_checkpoint_directory=variables.models_
 
 async def get_predictions(context: ContextTypes.DEFAULT_TYPE):
     path = 'storage/predicts/predicts.csv'
+    chat_id = context.job.chat_id
 
     if (os.path.exists(path) and os.path.isfile(path)):
         matches_df = pd.read_csv(f'storage/predicts/predicts.csv')
@@ -72,9 +73,7 @@ async def get_predictions(context: ContextTypes.DEFAULT_TYPE):
 
                 msg += msg_header
 
-            chat_id = context.job.chat_id
             await context.bot.send_message(chat_id=chat_id, text=msg, parse_mode=telegram.constants.ParseMode.HTML)
-
 
 def remove_job_if_exists(name: str, context: ContextTypes.DEFAULT_TYPE) -> bool:
     """Remove job with given name. Returns whether job was removed."""
