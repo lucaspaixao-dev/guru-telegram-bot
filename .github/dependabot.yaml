@@ -1,0 +1,10 @@
+version: 2
+updates:
+  # Used for python packaged
+  - package-ecosystem: pip
+    directory: "/"
+    schedule:
+      interval: daily
+      time: "19:00"
+      timezone: "America/Sao_Paulo
+    open-pull-requests-limit: 500
